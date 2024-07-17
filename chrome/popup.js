@@ -8,6 +8,9 @@ document.addEventListener('DOMContentLoaded', () => {
     if (data.basePath) {
       document.getElementById('basePath').value = data.basePath;
     }
+    if (data.fileExtension) {
+      document.getElementById('fileExtension').value = data.fileExtension;
+    }
   });
 
   document.getElementById('jsUrl').addEventListener('input', () => {
@@ -18,6 +21,7 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('loadChunks').addEventListener('click', () => {
     const jsUrl = document.getElementById('jsUrl').value;
     const basePath = document.getElementById('basePath').value;
+    const fileExtension = document.getElementById('fileExtension').value;
 
     if (jsUrl && basePath) {
       // Save the URL and base path to chrome.storage.sync
@@ -25,7 +29,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
       chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
         chrome.tabs.executeScript(tabs[0].id, {
-          code: `window.loadAndImportChunks('${jsUrl}', '${basePath}');`
+          code: `window.loadAndImportChunks('${jsUrl}', '${basePath}', '${fileExtension}');`
         });
       });
     }
