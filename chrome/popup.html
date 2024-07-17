@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Chunk Loader</title>
+  <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css" rel="stylesheet">
+  <link href="styles.css" rel="stylesheet">
+  <style>
+    body {
+      width: 400px;
+      height: 250px;
+    }
+    .footer {
+      text-align: center;
+      margin-top: 20px;
+      font-size: 0.8em;
+    }
+  </style>
+</head>
+<body>
+  <div class="container mt-3">
+    <h3>Chunk Loader</h3>
+    <div class="form-group">
+      <label for="jsUrl">Main JS File URL</label>
+      <input type="text" id="jsUrl" class="form-control" placeholder="Enter the main.<id>.js file URL">
+    </div>
+    <div class="form-group">
+      <label for="basePath">Base Path for Chunks</label>
+      <input type="text" id="basePath" class="form-control" placeholder="Base path for chunk files">
+    </div>
+    <button id="loadChunks" class="btn btn-primary">Load Chunks</button>
+    <div class="footer">
+      <p>Made with ❤️ by <a href="https://twitter.com/ElS1carius" target="_blank">Sicarius</a></p>
+    </div>
+  </div>
+  <script src="popup.js"></script>
+</body>
+</html>
