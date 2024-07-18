@@ -1,5 +1,5 @@
 # Chunk Loader
-Chunk Loader is a Chrome extension that allows users to load and import JavaScript chunks from a specified URL. This tool is particularly useful for developers who need to dynamically load multiple JavaScript files based on a main script file.
+Chunk Loader is a Chrome/firefox extension that allows users to load and import JavaScript chunks from a specified URL. This tool is designed for security researchers/bugbounty hunters to help them find bugs in react apps.
 
 ## Features
 - Auto-find the useful js file to load chunks from.
@@ -11,7 +11,10 @@ Chunk Loader is a Chrome extension that allows users to load and import JavaScri
 - Parse webpacks (most of the time)
 
 ## Installation Instructions
-Follow these steps to install and use the Chunk Loader extension in Google Chrome.
+Follow these steps to install and use the Chunk Loader extension in Google Chrome/FF dev build.
+
+Firefox store: **Todo**
+Chrome store: The app can't be published on chrome store as it uses manifest v2 with features that manifest v3 will block with the CSPs... (I tried)
 
 ### Step 1: Clone the Repository
 First, clone the repository to your local machine using the following command:
