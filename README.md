@@ -22,7 +22,7 @@ git clone https://github.com/ElSicarius/chunkloader.git
 1. Open Google Chrome and navigate to `chrome://extensions/`.
 2. Enable "Developer mode" by toggling the switch in the upper-right corner.
 3. Click the "Load unpacked" button.
-4. Select the directory where you cloned the repository (chunkloader).
+4. Select the "chrome" directory from where you cloned the repository (chunkloader).
 
 ### Step 3: Use the Extension
 1. Click on the Chunk Loader extension icon in the Chrome toolbar to open the popup.
