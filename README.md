@@ -13,8 +13,9 @@ Chunk Loader is a Chrome/firefox extension that allows users to load and import 
 ## Installation Instructions
 Follow these steps to install and use the Chunk Loader extension in Google Chrome/FF dev build.
 
-Firefox store: **Todo**
-Chrome store: The app can't be published on chrome store as it uses manifest v2 with features that manifest v3 will block with the CSPs... (I tried)
+- Firefox store: **Todo**
+
+- Chrome store: The app can't be published on chrome store as it uses manifest v2 with features that manifest v3 will block with the CSPs... (I tried, but if you can get it to work on manifest v3, I'm open to contribs :D)
 
 ### Step 1: Clone the Repository
 First, clone the repository to your local machine using the following command:
