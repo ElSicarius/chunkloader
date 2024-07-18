@@ -76,7 +76,8 @@ const patterns = [
   // /vendor-\w+(\.chunk)?\.js(\?.*)?$/,
   /webpack-runtime-\w+\.js(\?.*)?$/,
   /app-\w+\.js(\?.*)?$/,
-  /app\.\w+(\.chunk)?\.js(\?.*)?$/
+  /app\.\w+(\.chunk)?\.js(\?.*)?$/,
+  /\w+\.modern\.js(\?.*)?$/
 ];
 
 function updateBasePath(url) {
@@ -88,11 +89,14 @@ function updateFileExtension(url) {
   const extensionInput = document.getElementById('fileExtension');
   const mainJsPattern = /main\.\w+(\.chunk)?\.js(\?.*)?$/;
   const appJsPattern = /app-\w+\.js(\?.*)?$/;
-  const webpackPattern = /webpack-runtime-\w+\.js(\?.*)?$/;
-  const chunkFormatPattern = /\.\w+\.chunk\.js(\?.*)?$/;
+  // const webpackPattern = /webpack-runtime-\w+\.js(\?.*)?$/;
+  const dotChunkFormatPattern = /\.\w+\.chunk\.js(\?.*)?$/;
+  const dotModernFormatPattern = /\w+\.modern\.js(\?.*)?$/;
 
-  if (mainJsPattern.test(url) || chunkFormatPattern.test(url)) {
+  if (mainJsPattern.test(url) || dotChunkFormatPattern.test(url)) {
     extensionInput.value = '.chunk.js';
+  } else if (dotModernFormatPattern.test(url)) {
+    extensionInput.value = '.modern.js';
   } else if (appJsPattern.test(url)) {
     extensionInput.value = '.js';
   } else {
