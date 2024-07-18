@@ -14,6 +14,9 @@ function loadAndImportChunks(url, basePath, fileExtension) {
       // la méthode régex ici est la seule logie en mon sens
       const nextJsManifestRegex = /self\.__BUILD_MANIFEST\s*=\s*(function\s*\([^\)]*\)?\s*\{[\s\S]*?\}\s*\([^)]*\));?/;
       const nextJsMatch = scriptContent.match(nextJsManifestRegex);
+      const modernChunkRegex = /return\s+o\.p\s*\+\s*""\s*\+\s*\{([\s\S]*?)\}/;
+      const modernChunkMatch = scriptContent.match(modernChunkRegex);
+
 
       if (nextJsMatch) {
         // Extract the function call and execute it to get the manifest
@@ -33,6 +36,17 @@ function loadAndImportChunks(url, basePath, fileExtension) {
       } else if (url.includes('webpack-runtime-')) {
         // Handle Webpack runtime, don't mind me :).....
         searchAndLoadWebpackChunks(scriptContent, basePath);
+      } else if (modernChunkMatch) {
+        // Handle modern JS chunks
+        const chunkMapString = modernChunkMatch[1];
+        const chunkMap = parseChunkMap(chunkMapString);
+        for (const key in chunkMap) {
+          if (chunkMap.hasOwnProperty(key)) {
+            const chunkName = `${chunkMap[key]}.modern.js`;
+            const chunkUrl = `${basePath}${chunkName}`;
+            loadScript(chunkUrl);
+          }
+        }
       } else {
         // Handle standard chunk loading
         const standardChunkRegex = /{\s*(\d+:\s*"[^"]+",?\s*)+}/g;
@@ -95,6 +109,7 @@ function searchAndLoadWebpackChunks(scriptContent, basePath) {
     console.error('No chunk name mappings found in the Webpack runtime.');
   }
 }
+
 
 // Function to find the correct URL for the chunk
 function findChunkUrl(baseUrl, chunkName) {

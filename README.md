@@ -10,6 +10,10 @@ Chunk Loader is a Chrome/firefox extension that allows users to load and import 
 - Parse _buildManifest.js files to find the chunks automatically.
 - Parse webpacks (most of the time)
 
+## React Apps
+React applications often use code splitting to improve performance by loading only the necessary code for a given page. This can make it difficult to find and analyze all the JavaScript code that is being executed. Chunk Loader helps security researchers and bug bounty hunters identify and analyze the JavaScript chunks that are being loaded by a React application.
+/!\ It's not perfect, and it might not work on all the apps, i'm adding new ways to find the chunks regularly, but if you have a suggestion, feel free to open an issue or a PR. /!\
+
 ## Installation Instructions
 Follow these steps to install and use the Chunk Loader extension in Google Chrome/FF dev build.
 
