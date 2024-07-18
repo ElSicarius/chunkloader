@@ -2,10 +2,14 @@
 Chunk Loader is a Chrome extension that allows users to load and import JavaScript chunks from a specified URL. This tool is particularly useful for developers who need to dynamically load multiple JavaScript files based on a main script file.
 
 ## Features
+- Auto-find the useful js file to load chunks from.
 - Load JavaScript chunks from a specified URL.
 - Specify the base path for chunk files.
 - Customize the file extension for chunk files.
 - Persist URL, base path, and file extension across browser sessions.
+- Parse _buildManifest.js files to find the chunks automatically.
+- Parse webpacks (most of the time)
+
 ## Installation Instructions
 Follow these steps to install and use the Chunk Loader extension in Google Chrome.
 
@@ -26,10 +30,10 @@ git clone https://github.com/ElSicarius/chunkloader.git
 
 ### Step 3: Use the Extension
 1. Click on the Chunk Loader extension icon in the Chrome toolbar to open the popup.
-2. Enter the URL of the main JavaScript file in the "JS File URL" field.
+2. Enter the URL of the main JavaScript file in the "JS File URL" field, or just click the `auto-find` and try the suggested resources ! (You can cycle the sources by hitting the button multiple times)
 3. The base path for chunk files will be automatically populated based on the JS file URL. You can modify it if needed.
-4. Enter the file extension for the chunk files in the "File Extension" field (default is .chunk.js).
-5. Click the "Load Chunks" button to load the specified chunks.
+4. Enter the file extension for the chunk files in the "File Extension" field (default is .chunk.js, but it might try to adapt to the techno you're on).
+5. Click the "Load Chunks" button to load the specified chunks and see the magic happen.
 
 
 ## Contributing
