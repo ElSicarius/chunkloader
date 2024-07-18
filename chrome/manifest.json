@@ -5,14 +5,14 @@
     "description": "Load and import JS chunks from a specified URL.",
     "permissions": [
         "activeTab",
-        "scripting",
         "tabs",
         "storage",
-        "http:\/\/*\/",
-        "https:\/\/*\/"
+        "http://*/",
+        "https://*/",
+        "debugger"
     ],
     "background": {
-        "service_worker": "background.js"
+        "scripts": ["background.js"]
     },
     "browser_action": {
         "default_popup": "popup.html",
@@ -29,12 +29,8 @@
     },
     "content_scripts": [
         {
-            "matches": [
-                "<all_urls>"
-            ],
-            "js": [
-                "content.js"
-            ],
+            "matches": ["<all_urls>"],
+            "js": ["content.js"],
             "run_at": "document_start",
             "all_frames": true
         }

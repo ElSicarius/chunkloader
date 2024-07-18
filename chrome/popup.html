@@ -15,6 +15,21 @@
       margin-top: 20px;
       font-size: 0.8em;
     }
+    .small-button {
+      padding-top: .375rem;
+      padding-bottom: .375rem;
+      font-size: .775rem;
+    }
+    textarea {
+      width: 100%;
+      height: 10px; /* default height for single line */
+      resize: none;
+      overflow: hidden;
+      transition: height 0.3s ease;
+    }
+    textarea:focus {
+      height: 100px; /* expanded height on focus */
+    }
   </style>
 </head>
 <body>
@@ -22,19 +37,21 @@
     <h3>Chunk Loader</h3>
     <div class="form-group">
       <label for="jsUrl">Main JS File URL</label>
-      <input type="text" id="jsUrl" class="form-control" placeholder="Enter the main.<id>.js file URL">
+      <textarea id="jsUrl" class="form-control" placeholder="Enter the main.<id>.js file URL"></textarea>
     </div>
+    <button id="autoSearch" class="btn btn-secondary mb-3 small-button">Auto-find</button>
+
     <div class="form-group">
       <label for="basePath">Base Path for Chunks</label>
-      <input type="text" id="basePath" class="form-control" placeholder="Base path for chunk files">
+      <textarea id="basePath" class="form-control" placeholder="Base path for chunk files"></textarea>
     </div>
     <div class="form-group">
       <label for="fileExtension">File Extension for the chunks</label>
-      <input type="text" id="fileExtension" class="form-control" placeholder="Enter file extension" value=".chunk.js">
+      <input type="text" id="fileExtension" class="form-control" placeholder="Enter file extension" value=".chunk.js"></textarea>
     </div>
     <button id="loadChunks" class="btn btn-primary">Load Chunks</button>
     <div class="footer">
-      <p>Made with ❤️ by <a href="https://twitter.com/ElS1carius" target="_blank">Sicarius</a></p>
+      <p>v2.0 Made with ❤️ by <a href="https://twitter.com/ElS1carius" target="_blank">Sicarius</a></p>
     </div>
   </div>
   <script src="popup.js"></script>

@@ -1,6 +1,6 @@
 document.addEventListener('DOMContentLoaded', () => {
-  // Load the stored URL, base path, and file extension when the popup is opened
-  chrome.storage.sync.get(['jsUrl', 'basePath', 'fileExtension'], (data) => {
+  // Load the stored URL, base path, file extension, and match index when the popup is opened
+  chrome.storage.sync.get(['jsUrl', 'basePath', 'fileExtension', 'currentMatchIndex'], (data) => {
     if (data.jsUrl) {
       document.getElementById('jsUrl').value = data.jsUrl;
       updateBasePath(data.jsUrl);
@@ -11,6 +11,9 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     if (data.fileExtension) {
       document.getElementById('fileExtension').value = data.fileExtension;
+    }
+    if (typeof data.currentMatchIndex === 'number') {
+      currentMatchIndex = data.currentMatchIndex;
     }
   });
 
@@ -36,7 +39,45 @@ document.addEventListener('DOMContentLoaded', () => {
       });
     }
   });
+
+  document.getElementById('autoSearch').addEventListener('click', () => {
+    chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
+      chrome.tabs.executeScript(tabs[0].id, {
+        code: `(${autoSearchAndSetUrl.toString()})(${currentMatchIndex}, ${JSON.stringify(patterns.map(pattern => pattern.source))});`
+      }, (results) => {
+        if (results && results[0]) {
+          const foundUrl = results[0];
+          document.getElementById('jsUrl').value = foundUrl;
+          updateBasePath(foundUrl);
+          updateFileExtension(foundUrl);
+
+          // Increment and save the current match index to chrome.storage.sync
+          currentMatchIndex = (currentMatchIndex + 1) % patterns.length;
+          chrome.storage.sync.set({ currentMatchIndex });
+        } else {
+          alert('No suitable JS file found.');
+        }
+      });
+    });
+  });
+  // Add event listeners for expanding and shrinking the textareas
+  document.getElementById('jsUrl').addEventListener('focus', expandField);
+  document.getElementById('jsUrl').addEventListener('blur', shrinkField);
+  document.getElementById('basePath').addEventListener('focus', expandField);
+  document.getElementById('basePath').addEventListener('blur', shrinkField);
 });
+
+let currentMatchIndex = 0;
+const patterns = [
+  /_buildManifest\.js(\?.*)?$/,
+  /main\.\w+(\.chunk)?\.js(\?.*)?$/,
+  // /vendor\.\w+(\.chunk)?\.js(\?.*)?$/,
+  /main-\w+(\.chunk)?\.js(\?.*)?$/,
+  // /vendor-\w+(\.chunk)?\.js(\?.*)?$/,
+  /webpack-runtime-\w+\.js(\?.*)?$/,
+  /app-\w+\.js(\?.*)?$/,
+  /app\.\w+(\.chunk)?\.js(\?.*)?$/
+];
 
 function updateBasePath(url) {
   const basePath = url.substring(0, url.lastIndexOf('/') + 1);
@@ -45,10 +86,48 @@ function updateBasePath(url) {
 
 function updateFileExtension(url) {
   const extensionInput = document.getElementById('fileExtension');
-  const mainJsPattern = /main\.\w+\.js$/;
-  if (mainJsPattern.test(url)) {
+  const mainJsPattern = /main\.\w+(\.chunk)?\.js(\?.*)?$/;
+  const appJsPattern = /app-\w+\.js(\?.*)?$/;
+  const webpackPattern = /webpack-runtime-\w+\.js(\?.*)?$/;
+  const chunkFormatPattern = /\.\w+\.chunk\.js(\?.*)?$/;
+
+  if (mainJsPattern.test(url) || chunkFormatPattern.test(url)) {
     extensionInput.value = '.chunk.js';
+  } else if (appJsPattern.test(url)) {
+    extensionInput.value = '.js';
   } else {
     extensionInput.value = '.js';
   }
+}
+
+function autoSearchAndSetUrl(currentIndex, patternSources) {
+  const scriptTags = Array.from(document.querySelectorAll('script[src]'));
+  const patterns = patternSources.map(source => new RegExp(source));
+
+  const matches = [];
+  for (const pattern of patterns) {
+    for (const script of scriptTags) {
+      if (pattern.test(script.src)) {
+        matches.push(script.src);
+      }
+    }
+  }
+
+  if (matches.length > 0) {
+    return matches[currentIndex % matches.length];
+  }
+
+  return null;
+}
+
+function expandField() {
+  this.style.height = '100px';
+  this.style.whiteSpace = 'normal';
+  this.style.overflow = 'visible';
+}
+
+function shrinkField() {
+  this.style.height = '';
+  this.style.whiteSpace = '';
+  this.style.overflow = '';
 }
