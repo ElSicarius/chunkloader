@@ -71,9 +71,11 @@ let currentMatchIndex = 0;
 const patterns = [
   /_buildManifest\.js(\?.*)?$/,
   /main\.\w+(\.chunk)?\.js(\?.*)?$/,
-  // /vendor\.\w+(\.chunk)?\.js(\?.*)?$/,
   /main-\w+(\.chunk)?\.js(\?.*)?$/,
-  // /vendor-\w+(\.chunk)?\.js(\?.*)?$/,
+  // /vendor\.\w+(\.chunk)?\.js(\?.*)?$/,
+  // /vendor-\w+(\.chunk)?\.js(\?.*)?$/,  
+  /runtime\.\w+(\.chunk)?\.js(\?.*)?$/,
+  /runtime-\w+(\.chunk)?\.js(\?.*)?$/,
   /webpack-runtime-\w+\.js(\?.*)?$/,
   /app-\w+\.js(\?.*)?$/,
   /app\.\w+(\.chunk)?\.js(\?.*)?$/,

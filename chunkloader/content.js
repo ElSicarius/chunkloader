@@ -33,9 +33,9 @@ function loadAndImportChunks(url, basePath, fileExtension) {
           const chunkUrl = findChunkUrl(url, chunk);
           loadScript(chunkUrl);
         });
-      } else if (url.includes('webpack-runtime-')) {
+      } else if (url.includes('webpack-runtime-') || url.includes('runtime-')) {
         // Handle Webpack runtime, don't mind me :).....
-        searchAndLoadWebpackChunks(scriptContent, basePath);
+        searchAndLoadWebpackChunks(scriptContent, basePath, fileExtension);
       } else if (modernChunkMatch) {
         // Handle modern JS chunks
         const chunkMapString = modernChunkMatch[1];
@@ -89,7 +89,7 @@ function loadScript(src) {
 }
 
 // Function to fetch and load chunks from Webpack runtime
-function searchAndLoadWebpackChunks(scriptContent, basePath) {
+function searchAndLoadWebpackChunks(scriptContent, basePath, fileExtension) {
   const chunkNameMapRegex = /{\s*(\d+:\s*"[^"]+",?\s*)+}/g;
   const matches = scriptContent.match(chunkNameMapRegex);
 
@@ -101,7 +101,7 @@ function searchAndLoadWebpackChunks(scriptContent, basePath) {
     allKeys.forEach(key => {
       const namePart1 = chunkNameMap1[key] || key;
       const namePart2 = chunkNameMap2[key] || key;
-      const chunkName = `${namePart1}-${namePart2}.js`;
+      const chunkName = `${namePart1}-${namePart2}${fileExtension}`;
       const chunkUrl = `${basePath}${chunkName}`;
       loadScript(chunkUrl);
     });
@@ -145,8 +145,8 @@ const injectedJS = `
   (${loadAndImportChunks.toString()})();
 `;
 
-(function() {
-  switch(document.contentType) {
+(function () {
+  switch (document.contentType) {
     case 'application/xml':
       return;
   }
