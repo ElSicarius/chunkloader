@@ -7,64 +7,24 @@ function loadAndImportChunks(url, basePath, fileExtension) {
       return response.text();
     })
     .then(scriptContent => {
-      // tentative pour cette spécificité
-      // c'est dégeulasse, oui....
-      // Le fichier _buildManifest.js est un fichier généré par Next.js qui contient les informations sur les chunks à charger
-      // On va le chercher et essayer de charger les chunks qu'il contient
-      // la méthode régex ici est la seule logie en mon sens
-      const nextJsManifestRegex = /self\.__BUILD_MANIFEST\s*=\s*(function\s*\([^\)]*\)?\s*\{[\s\S]*?\}\s*\([^)]*\));?/;
-      const nextJsMatch = scriptContent.match(nextJsManifestRegex);
+      const nextJsManifestFunctionRegex = /self\.__BUILD_MANIFEST\s*=\s*(function\s*\([^\)]*\)?\s*\{[\s\S]*?\}\s*\([^)]*\));?/;
+      const nextJsManifestObjectRegex = /self\.__BUILD_MANIFEST\s*=\s*({[\s\S]*})/;
       const modernChunkRegex = /return\s+o\.p\s*\+\s*""\s*\+\s*\{([\s\S]*?)\}/;
+
+      const nextJsManifestFunctionMatch = scriptContent.match(nextJsManifestFunctionRegex);
+      const nextJsManifestObjectMatch = scriptContent.match(nextJsManifestObjectRegex);
       const modernChunkMatch = scriptContent.match(modernChunkRegex);
 
-
-      if (nextJsMatch) {
-        // Extract the function call and execute it to get the manifest
-        const manifestFunctionCall = nextJsMatch[1];
-        const buildManifest = eval(`(function() { return ${manifestFunctionCall}; })()`);
-        const allChunks = [];
-        for (const key in buildManifest) {
-          if (Array.isArray(buildManifest[key])) {
-            console.log(`Adding ${buildManifest[key].length} chunks from ${key}`);
-            allChunks.push(...buildManifest[key]);
-          }
-        }
-        allChunks.forEach(chunk => {
-          const chunkUrl = findChunkUrl(url, chunk);
-          loadScript(chunkUrl);
-        });
-      } else if (url.includes('webpack-runtime-') || url.includes('runtime-')) {
-        // Handle Webpack runtime, don't mind me :).....
-        searchAndLoadWebpackChunks(scriptContent, basePath, fileExtension);
+      if (nextJsManifestFunctionMatch) {
+        handleNextJsManifestFunction(nextJsManifestFunctionMatch[1], url);
+      } else if (nextJsManifestObjectMatch) {
+        handleNextJsManifestObject(nextJsManifestObjectMatch[1], url);
       } else if (modernChunkMatch) {
-        // Handle modern JS chunks
-        const chunkMapString = modernChunkMatch[1];
-        const chunkMap = parseChunkMap(chunkMapString);
-        for (const key in chunkMap) {
-          if (chunkMap.hasOwnProperty(key)) {
-            const chunkName = `${chunkMap[key]}.modern.js`;
-            const chunkUrl = `${basePath}${chunkName}`;
-            loadScript(chunkUrl);
-          }
-        }
+        handleModernChunks(modernChunkMatch[1], basePath);
+      } else if (url.includes('webpack-runtime-') || url.includes('runtime-')) {
+        searchAndLoadWebpackChunks(scriptContent, basePath, fileExtension);
       } else {
-        // Handle standard chunk loading
-        const standardChunkRegex = /{\s*(\d+:\s*"[^"]+",?\s*)+}/g;
-        const matches = scriptContent.match(standardChunkRegex);
-
-        if (!matches || matches.length === 0) {
-          throw new Error("No chunk mappings found in the script content.");
-        }
-
-        // Process standard chunks
-        matches.forEach(mappingString => {
-          const jsonMappingString = mappingString.replace(/(\d+):/g, '"$1":');
-          const mappingObject = JSON.parse(jsonMappingString);
-          Object.keys(mappingObject).forEach(key => {
-            const chunkName = `${basePath}${key}.${mappingObject[key]}${fileExtension}`;
-            loadScript(chunkName);
-          });
-        });
+        handleStandardChunks(scriptContent, basePath, fileExtension);
       }
     })
     .then(results => {
@@ -73,6 +33,71 @@ function loadAndImportChunks(url, basePath, fileExtension) {
     .catch(error => {
       console.error('Error loading or importing chunks:', error);
     });
+}
+
+// Function to handle Next.js build manifest function
+function handleNextJsManifestFunction(manifestFunctionCall, url) {
+  const buildManifest = eval(`(function() { return ${manifestFunctionCall}; })()`);
+  const allChunks = [];
+  for (const key in buildManifest) {
+    if (Array.isArray(buildManifest[key])) {
+      console.log(`Adding ${buildManifest[key].length} chunks from ${key}`);
+      allChunks.push(...buildManifest[key]);
+    }
+  }
+  allChunks.forEach(chunk => {
+    const chunkUrl = findChunkUrl(url, chunk);
+    loadScript(chunkUrl);
+  });
+}
+
+// Function to handle Next.js build manifest object
+function handleNextJsManifestObject(manifestObjectString, url) {
+  const buildManifest = eval(`(${manifestObjectString})`);
+  const allChunks = [];
+  for (const key in buildManifest) {
+    if (Array.isArray(buildManifest[key])) {
+      console.log(`Adding ${buildManifest[key].length} chunks from ${key}`);
+      allChunks.push(...buildManifest[key]);
+    }
+  }
+  allChunks.forEach(chunk => {
+    const chunkUrl = findChunkUrl(url, chunk);
+    loadScript(chunkUrl);
+  });
+}
+
+// Function to handle modern JS chunks
+function handleModernChunks(chunkMapString, basePath) {
+  const chunkMap = parseChunkMap(chunkMapString);
+  for (const key in chunkMap) {
+    if (chunkMap.hasOwnProperty(key)) {
+      const chunkName = `${chunkMap[key]}.modern.js`;
+      const chunkUrl = `${basePath}${chunkName}`;
+      loadScript(chunkUrl);
+    }
+  }
+}
+
+// Function to handle standard chunk loading
+function handleStandardChunks(scriptContent, basePath, fileExtension) {
+  const standardChunkRegex = /{\s*(\d+:\s*"[^"]+",?\s*)+}/g;
+  const matches = scriptContent.match(standardChunkRegex);
+
+  if (!matches || matches.length === 0) {
+    throw new Error("No chunk mappings found in the script content.");
+  }
+
+  // Process standard chunks
+  matches.forEach(mappingString => {
+    const jsonMappingString = mappingString.replace(/(\d+):/g, '"$1":');
+    const mappingObject = JSON.parse(jsonMappingString);
+    Object.keys(mappingObject).forEach(key => {
+      const chunkName = `${key}.${mappingObject[key]}${fileExtension}`;
+      const chunkUrl = `${basePath}${chunkName}`;
+      loadScript(chunkUrl);
+    });
+  });
 }
 
 // Function to load a script dynamically
@@ -109,7 +134,6 @@ function searchAndLoadWebpackChunks(scriptContent, basePath, fileExtension) {
     console.error('No chunk name mappings found in the Webpack runtime.');
   }
 }
-
 
 // Function to find the correct URL for the chunk
 function findChunkUrl(baseUrl, chunkName) {
