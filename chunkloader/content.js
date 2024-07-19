@@ -81,7 +81,8 @@ function handleModernChunks(chunkMapString, basePath) {
 
 // Function to handle standard chunk loading
 function handleStandardChunks(scriptContent, basePath, fileExtension) {
-  const standardChunkRegex = /{\s*(\d+:\s*"[^"]+",?\s*)+}/g;
+  // Adjusted regex to avoid matching strings with spaces inside the quotes
+  const standardChunkRegex = /{\s*(\d+:\s*"\w+",?\s*)+}/g;
   const matches = scriptContent.match(standardChunkRegex);
 
   if (!matches || matches.length === 0) {
@@ -99,6 +100,7 @@ function handleStandardChunks(scriptContent, basePath, fileExtension) {
     });
   });
 }
+
 
 // Function to load a script dynamically
 function loadScript(src) {
