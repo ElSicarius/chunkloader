@@ -43,6 +43,9 @@ git clone https://github.com/ElSicarius/chunkloader.git
 4. Enter the file extension for the chunk files in the "File Extension" field (default is .chunk.js, but it might try to adapt to the techno you're on).
 5. Click the "Load Chunks" button to load the specified chunks and see the magic happen.
 
+### Customize
+As the extension is a bit "hacky", the webpack might have a different file format for it's chunks.
+In some cases, you might need to transform the file format, you can do it by using burp 's match and replace feature.
 
 ## Contributing
 Contributions are welcome! If you have any suggestions or improvements, please open an issue or submit a pull request.

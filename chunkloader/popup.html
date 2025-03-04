@@ -4,11 +4,12 @@
   <meta charset="UTF-8">
   <title>Chunk Loader</title>
   <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css" rel="stylesheet">
-  <link href="styles.css" rel="stylesheet">
+  <script src="popup.js"></script>
+
   <style>
     body {
       width: 400px;
-      height: 250px;
+      height: auto;
     }
     .footer {
       text-align: center;
@@ -30,30 +31,72 @@
     textarea:focus {
       height: 100px; /* expanded height on focus */
     }
+    #previewLink {
+      word-wrap: break-word;
+      font-size: 0.85em;
+      color: #555;
+    }
   </style>
 </head>
 <body>
   <div class="container mt-3">
     <h3>Chunk Loader</h3>
-    <div class="form-group">
-      <label for="jsUrl">Main JS File URL</label>
-      <textarea id="jsUrl" class="form-control" placeholder="Enter the main.<id>.js file URL"></textarea>
-    </div>
-    <button id="autoSearch" class="btn btn-secondary mb-3 small-button">Auto-find</button>
+    <ul class="nav nav-tabs" id="myTab" role="tablist">
+      <li class="nav-item">
+        <a class="nav-link active" id="home-tab" data-toggle="tab" href="#home" role="tab" aria-controls="home" aria-selected="true">Load Chunks</a>
+      </li>
+      <li class="nav-item">
+        <a class="nav-link" id="bruteforce-tab" data-toggle="tab" href="#bruteforce" role="tab" aria-controls="bruteforce" aria-selected="false">Bruteforce Chunks</a>
+      </li>
+    </ul>
+    <div class="tab-content" id="myTabContent">
+      <div class="tab-pane fade show active" id="home" role="tabpanel" aria-labelledby="home-tab">
+        <!-- Current UI -->
+        <div class="form-group">
+          <label for="jsUrl">Main JS File URL</label>
+          <textarea id="jsUrl" class="form-control" placeholder="Enter the main.<id>.js file URL"></textarea>
+        </div>
+        <button id="autoSearch" class="btn btn-secondary mb-3 small-button">Auto-find</button>
 
-    <div class="form-group">
-      <label for="basePath">Base Path for Chunks</label>
-      <textarea id="basePath" class="form-control" placeholder="Base path for chunk files"></textarea>
+        <div class="form-group">
+          <label for="basePath">Base Path for Chunks</label>
+          <textarea id="basePath" class="form-control" placeholder="Base path for chunk files"></textarea>
+        </div>
+        <div class="form-group">
+          <label for="fileExtension">File Extension for the chunks</label>
+          <input type="text" id="fileExtension" class="form-control" placeholder="Enter file extension" value=".chunk.js"></input>
+        </div>
+        <button id="loadChunks" class="btn btn-primary">Load Chunks</button>
+      </div>
+
+      <div class="tab-pane fade" id="bruteforce" role="tabpanel" aria-labelledby="bruteforce-tab">
+        <!-- Bruteforce UI -->
+        <div class="form-group">
+          <label for="bfBasePath">Base Path for JS Files</label>
+          <input type="text" id="bfBasePath" class="form-control" placeholder="Enter the base path for the JS files">
+        </div>
+        <div class="form-group">
+          <label for="bfRange">Number Range or Letters</label>
+          <input type="text" id="bfRange" class="form-control" placeholder="Enter number range (e.g., 1-100) or letters (e.g., a-z)">
+        </div>
+        <div class="form-group">
+          <label for="bfPrefix">File Prefix</label>
+          <input type="text" id="bfPrefix" class="form-control" placeholder="Enter file prefix">
+        </div>
+        <div class="form-group">
+          <label for="bfSuffix">File Suffix (including extension)</label>
+          <input type="text" id="bfSuffix" class="form-control" placeholder="Enter file suffix (e.g., .js)">
+        </div>
+        <div id="previewLink" class="mb-3"></div> <!-- Preview Link here -->
+        <button id="bruteforceChunks" class="btn btn-danger">Bruteforce Chunks</button>
+      </div>
     </div>
-    <div class="form-group">
-      <label for="fileExtension">File Extension for the chunks</label>
-      <input type="text" id="fileExtension" class="form-control" placeholder="Enter file extension" value=".chunk.js"></textarea>
-    </div>
-    <button id="loadChunks" class="btn btn-primary">Load Chunks</button>
     <div class="footer">
-      <p>v2.0 Made with ❤️ by <a href="https://twitter.com/ElS1carius" target="_blank">Sicarius</a></p>
+      <p>v2.1 Made with ❤️ by <a href="https://twitter.com/ElS1carius" target="_blank">Sicarius</a></p>
     </div>
   </div>
-  <script src="popup.js"></script>
+  <script src="scripts/jquery-3.3.1.slim.min.js"></script>
+  <script src="scripts/popper.min.js"></script>
+  <script src="scripts/bootstrap.min.js"></script>
 </body>
 </html>
