@@ -1,137 +1,13 @@
-document.addEventListener('DOMContentLoaded', () => {
-  // Load the stored data when the popup is opened
-  chrome.storage.sync.get(['jsUrl', 'basePath', 'fileExtension', 'currentMatchIndex', 'bfBasePath', 'bfRange', 'bfPrefix', 'bfSuffix'], (data) => {
-    if (data.jsUrl) {
-      document.getElementById('jsUrl').value = data.jsUrl;
-      updateBasePath(data.jsUrl);
-      updateFileExtension(data.jsUrl);
-    }
-    if (data.basePath) {
-      document.getElementById('basePath').value = data.basePath;
-    }
-    if (data.fileExtension) {
-      document.getElementById('fileExtension').value = data.fileExtension;
-    }
-    if (typeof data.currentMatchIndex === 'number') {
-      currentMatchIndex = data.currentMatchIndex;
-    }
-    if (data.bfBasePath) {
-      document.getElementById('bfBasePath').value = data.bfBasePath;
-    }
-    if (data.bfRange) {
-      document.getElementById('bfRange').value = data.bfRange;
-    }
-    if (data.bfPrefix) {
-      document.getElementById('bfPrefix').value = data.bfPrefix;
-    }
-    if (data.bfSuffix) {
-      document.getElementById('bfSuffix').value = data.bfSuffix;
-    }
-  });
+// popup.js – Manifest V3 • 12 jun 2025
+// ------------------------------------------------------------
 
+'use strict';
 
-  document.getElementById('jsUrl').addEventListener('input', () => {
-    const jsUrl = document.getElementById('jsUrl').value;
-    updateBasePath(jsUrl);
-    updateFileExtension(jsUrl);
-  });
-
-  document.getElementById('autoSearch').addEventListener('click', () => {
-    chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-      chrome.tabs.executeScript(tabs[0].id, {
-        code: `(${autoSearchAndSetUrl.toString()})(${currentMatchIndex}, ${JSON.stringify(patterns.map(pattern => pattern.source))});`
-      }, (results) => {
-        if (results && results[0]) {
-          const foundUrl = results[0];
-          document.getElementById('jsUrl').value = foundUrl;
-          updateBasePath(foundUrl);
-          updateFileExtension(foundUrl);
-
-          // Increment and save the current match index to chrome.storage.sync
-          currentMatchIndex = (currentMatchIndex + 1) % patterns.length;
-          chrome.storage.sync.set({ currentMatchIndex });
-        } else {
-          alert('No suitable JS file found.');
-        }
-      });
-    });
-  });
-
-  document.getElementById('loadChunks').addEventListener('click', () => {
-    const jsUrl = document.getElementById('jsUrl').value;
-    const basePath = document.getElementById('basePath').value;
-    const fileExtension = document.getElementById('fileExtension').value;
-
-    if (jsUrl && basePath) {
-      // Save the URL, base path, and file extension to chrome.storage.sync
-      chrome.storage.sync.set({ jsUrl, basePath, fileExtension });
-
-      chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-        chrome.tabs.executeScript(tabs[0].id, {
-          code: `window.loadAndImportChunks('${jsUrl}', '${basePath}', '${fileExtension}');`
-        });
-      });
-    }
-  });
-
-  document.getElementById('bruteforceChunks').addEventListener('click', () => {
-    const bfBasePath = document.getElementById('bfBasePath').value;
-    const bfRange = document.getElementById('bfRange').value;
-    const bfPrefix = document.getElementById('bfPrefix').value || '';
-    const bfSuffix = document.getElementById('bfSuffix').value || '';
-
-    if (bfBasePath && bfRange && bfSuffix) {
-      // Save the data to chrome.storage.sync
-      chrome.storage.sync.set({ bfBasePath, bfRange, bfPrefix, bfSuffix });
-
-      // Generate the filenames based on the range, prefix, and suffix
-      const filenames = generateFilenames(bfRange, bfPrefix, bfSuffix);
-
-      // Inject the scripts to load the generated files
-      chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-        chrome.tabs.executeScript(tabs[0].id, {
-          code: `
-            (${function loadAndImportBruteforceChunks(basePath, filenames) {
-              function loadScript(src) {
-                const script = document.createElement('script');
-                script.src = src;
-                script.onload = () => console.log('Loaded', src);
-                script.onerror = () => console.error('Error loading', src);
-                document.head.appendChild(script);
-              }
-              filenames.forEach(filename => loadScript(basePath + '/' + filename));
-            }})(${JSON.stringify(bfBasePath)}, ${JSON.stringify(filenames)});
-          `
-        });
-      });
-    }
-  });
-  // Update preview when any of these inputs change
-  document.getElementById('bfBasePath').addEventListener('input', updatePreview);
-  document.getElementById('bfRange').addEventListener('input', updatePreview);
-  document.getElementById('bfPrefix').addEventListener('input', updatePreview);
-  document.getElementById('bfSuffix').addEventListener('input', updatePreview);
-  // Add event listeners for expanding and shrinking the textareas
-  document.getElementById('jsUrl').addEventListener('focus', expandField);
-  document.getElementById('jsUrl').addEventListener('blur', shrinkField);
-  document.getElementById('basePath').addEventListener('focus', expandField);
-  document.getElementById('basePath').addEventListener('blur', shrinkField);
-
-  // document.getElementById('bruteforce').addEventListener('click', updatePreview);
-
-  
-});
-
-// Function to load scripts by URL
-function loadScript(src) {
-  const script = document.createElement('script');
-  script.src = src;
-  script.onload = () => console.log(`Loaded ${src}`);
-  script.onerror = () => console.error(`Error loading ${src}`);
-  document.head.appendChild(script);
-}
-
+/***********************
+ *  Constantes & état  *
+ ***********************/
 let currentMatchIndex = 0;
+
 const patterns = [
   /_buildManifest\.js(\?.*)?$/,
   /main(-[\w]{2}[\d]{4})?\.\w+(\.chunk)?\.js(\?.*)?$/,
@@ -141,97 +17,250 @@ const patterns = [
   /webpack-runtime-\w+\.js(\?.*)?$/,
   /app-\w+\.js(\?.*)?$/,
   /app\.\w+(\.chunk)?\.js(\?.*)?$/,
-  /\w+\.modern\.js(\?.*)?$/
+  /\w+\.modern\.js(\?.*)?$/,
+  /index--[\w\-]+\.js$/
 ];
 
+/************************
+ *  Helper d’injection   *
+ ************************/
+/**
+ * Exécute `func` dans la page active (isolated world) et renvoie son résultat.
+ * Écrit un log avant / après exécution.
+ */
+async function inject(func, args = []) {
+  const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+  console.log('[Popup] inject →', func.name || 'anonymous', 'args=', args, 'tab=', tab.id);
+  const [{ result }] = await chrome.scripting.executeScript({
+    target: { tabId: tab.id },
+    world:  'MAIN',
+    func,
+    args
+  });
+  console.log('[Popup] inject ←', func.name || 'anonymous', 'result=', result);
+  return result;
+}
+
+/**********************
+ *  Initialisation UI *
+ **********************/
+document.addEventListener('DOMContentLoaded', () => {
+  console.log('[Popup] DOMContentLoaded');
+
+  // raccourcis DOM
+  const $ = (id) => document.getElementById(id);
+  const jsUrl          = $('jsUrl');
+  const basePath       = $('basePath');
+  const fileExtension  = $('fileExtension');
+  const bfBasePath     = $('bfBasePath');
+  const bfRange        = $('bfRange');
+  const bfPrefix       = $('bfPrefix');
+  const bfSuffix       = $('bfSuffix');
+  const previewLinkLbl = $('previewLink');
+
+   const runAllBtn = document.createElement('button');
+  runAllBtn.textContent = 'Run Against All';
+  runAllBtn.className = 'btn btn-success mb-3 small-button';
+  jsUrl.parentNode.insertBefore(runAllBtn, jsUrl.nextSibling);
+  runAllBtn.addEventListener('click', runAgainstAll);
+
+  /* === 1. Restauration depuis storage === */
+  chrome.storage.sync.get([
+    'jsUrl',
+    'basePath',
+    'fileExtension',
+    'currentMatchIndex',
+    'bfBasePath',
+    'bfRange',
+    'bfPrefix',
+    'bfSuffix'
+  ], (data) => {
+    console.log('[Popup] Storage restored', data);
+
+    if (data.jsUrl) {
+      jsUrl.value = data.jsUrl;
+      updateBasePath(data.jsUrl);
+      updateFileExtension(data.jsUrl);
+    }
+    if (data.basePath)      basePath.value      = data.basePath;
+    if (data.fileExtension) fileExtension.value = data.fileExtension;
+    if (typeof data.currentMatchIndex === 'number') currentMatchIndex = data.currentMatchIndex;
+
+    if (data.bfBasePath) bfBasePath.value = data.bfBasePath;
+    if (data.bfRange)    bfRange.value    = data.bfRange;
+    if (data.bfPrefix)   bfPrefix.value   = data.bfPrefix;
+    if (data.bfSuffix)   bfSuffix.value   = data.bfSuffix;
+
+    updatePreview();
+  });
+
+  /* === 2. Événements UI === */
+  // Saisie URL JS : mise à jour automatique basePath + extension
+  jsUrl.addEventListener('input', () => {
+    console.log('[Popup] jsUrl input', jsUrl.value);
+    updateBasePath(jsUrl.value);
+    updateFileExtension(jsUrl.value);
+  });
+
+  // Bouton AutoSearch
+  $('autoSearch').addEventListener('click', async () => {
+    console.log('[Popup] btn autoSearch');
+    const foundUrl = await inject(autoSearchAndSetUrl, [
+      currentMatchIndex,
+      patterns.map((p) => p.source)
+    ]);
+
+    if (foundUrl) {
+      console.log('[Popup] autoSearch found', foundUrl);
+      jsUrl.value = foundUrl;
+      updateBasePath(foundUrl);
+      updateFileExtension(foundUrl);
+
+      currentMatchIndex = (currentMatchIndex + 1) % patterns.length;
+      chrome.storage.sync.set({ currentMatchIndex });
+    } else {
+      console.warn('[Popup] autoSearch → no match');
+      alert('No suitable JS file found.');
+    }
+  });
+
+  // Bouton LoadChunks
+  $('loadChunks').addEventListener('click', async () => {
+    const [url, base, ext] = [jsUrl.value, basePath.value, fileExtension.value];
+    console.log('[Popup] btn loadChunks', { url, base, ext });
+    if (!url || !base) return;
+
+    chrome.storage.sync.set({ jsUrl: url, basePath: base, fileExtension: ext });
+    await inject((u, b, e) => {
+      console.log('[Page] window.loadAndImportChunks(', u, b, e, ')');
+      window.loadAndImportChunks(u, b, e);
+    }, [url, base, ext]);
+  });
+
+  // Bouton BruteforceChunks
+  $('bruteforceChunks').addEventListener('click', async () => {
+    const cfg = {
+      bp:  bfBasePath.value,
+      rng: bfRange.value,
+      pre: bfPrefix.value || '',
+      suf: bfSuffix.value || ''
+    };
+    console.log('[Popup] btn bruteforceChunks', cfg);
+    if (!(cfg.bp && cfg.rng && cfg.suf)) return;
+
+    chrome.storage.sync.set({ bfBasePath: cfg.bp, bfRange: cfg.rng, bfPrefix: cfg.pre, bfSuffix: cfg.suf });
+    const files = generateFilenames(cfg.rng, cfg.pre, cfg.suf);
+    console.log('[Popup] bruteforce filenames', files);
+
+    await inject((basePath, filenames) => {
+      console.log('[Page] bruteforce inject', basePath, filenames);
+      filenames.forEach((f) => {
+        const s = document.createElement('script');
+        s.src = `${basePath}/${f}`;
+        s.defer = true;
+        s.onload  = () => console.log('[Page] ✔ Loaded', f);
+        s.onerror = () => console.warn('[Page] ✘ Failed', f);
+        document.head.appendChild(s);
+      });
+    }, [cfg.bp, files]);
+  });
+
+  // Aperçu Bruteforce en live
+  ['bfBasePath', 'bfRange', 'bfPrefix', 'bfSuffix'].forEach((id) =>
+    $(id).addEventListener('input', updatePreview)
+  );
+
+  // Expand / shrink textarea
+  ['jsUrl', 'basePath'].forEach((id) => {
+    $(id).addEventListener('focus', expandField);
+    $(id).addEventListener('blur',  shrinkField);
+  });
+});
+
+
+async function runAgainstAll() {
+  console.log('[Popup] runAgainstAll start');
+  // Récupère tous les <script src> du document page
+  const allUrls = await inject(() => {
+    return Array.from(document.querySelectorAll('script[src]'))
+      .map(s => s.src);
+  });
+  console.log('[Popup] Found script URLs:', allUrls);
+
+  // Pour chaque URL, déduit basePath et extension, puis lance loadChunks
+  for (const url of allUrls) {
+    const base = url.substring(0, url.lastIndexOf('/') + 1);
+    let ext = '.js';
+    if (/\.chunk\.js(\?.*)?$/.test(url))        ext = '.chunk.js';
+    else if (/\.modern\.js(\?.*)?$/.test(url))  ext = '.modern.js';
+    else if (/\.js(\?.*)?$/.test(url))           ext = '.js';
+    console.log('[Popup] running on', url, base, ext);
+    await inject((u, b, e) => window.loadAndImportChunks(u, b, e), [url, base, ext]);
+  }
+  console.log('[Popup] runAgainstAll complete');
+}
+
+/*******************************************************************
+ *  Fonctions                                                       *
+ *******************************************************************/
 function updateBasePath(url) {
   const basePath = url.substring(0, url.lastIndexOf('/') + 1);
+  console.log('[Popup] updateBasePath →', basePath);
   document.getElementById('basePath').value = basePath;
 }
 
 function updateFileExtension(url) {
-  const extensionInput = document.getElementById('fileExtension');
-  const mainJsPattern = /main\.\w+(\.chunk)?\.js(\?.*)?$/;
-  const appJsPattern = /app-\w+\.js(\?.*)?$/;
-  const dotChunkFormatPattern = /\.\w+\.chunk\.js(\?.*)?$/;
-  const dotModernFormatPattern = /\w+\.modern\.js(\?.*)?$/;
+  const input = document.getElementById('fileExtension');
+  const patMain  = /main\.\w+(\.chunk)?\.js(\?.*)?$/;
+  const patApp   = /app-\w+\.js(\?.*)?$/;
+  const patChunk = /\.\w+\.chunk\.js(\?.*)?$/;
+  const patMod   = /\w+\.modern\.js(\?.*)?$/;
 
-  if (mainJsPattern.test(url) || dotChunkFormatPattern.test(url)) {
-    extensionInput.value = '.chunk.js';
-  } else if (dotModernFormatPattern.test(url)) {
-    extensionInput.value = '.modern.js';
-  } else if (appJsPattern.test(url)) {
-    extensionInput.value = '.js';
-  } else {
-    extensionInput.value = '.js';
+  let ext = '.js';
+  if (patMain.test(url) || patChunk.test(url))      ext = '.chunk.js';
+  else if (patMod.test(url))                        ext = '.modern.js';
+  else if (patApp.test(url))                        ext = '.js';
+  input.value = ext;
+  console.log('[Popup] updateFileExtension →', ext);
+}
+
+function autoSearchAndSetUrl(currentIdx, patternSources) {
+  console.log('[Page] autoSearchAndSetUrl start', currentIdx, patternSources);
+  const scripts  = [...document.querySelectorAll('script[src]')];
+  const patterns = patternSources.map((s) => new RegExp(s));
+  const matches  = [];
+
+  for (const p of patterns) {
+    for (const s of scripts) if (p.test(s.src)) matches.push(s.src);
   }
+  console.log('[Page] autoSearchAndSetUrl matches', matches);
+  return matches.length ? matches[currentIdx % matches.length] : null;
 }
 
-function autoSearchAndSetUrl(currentIndex, patternSources) {
-  const scriptTags = Array.from(document.querySelectorAll('script[src]'));
-  const patterns = patternSources.map(source => new RegExp(source));
+function expandField()  { this.style.height = '100px'; this.style.whiteSpace = 'normal'; this.style.overflow = 'visible'; }
+function shrinkField()  { this.style.height = '';      this.style.whiteSpace = '';       this.style.overflow = '';       }
 
-  const matches = [];
-  for (const pattern of patterns) {
-    for (const script of scriptTags) {
-      if (pattern.test(script.src)) {
-        matches.push(script.src);
-      }
-    }
-  }
-
-  if (matches.length > 0) {
-    return matches[currentIndex % matches.length];
-  }
-
-  return null;
-}
-
-function expandField() {
-  this.style.height = '100px';
-  this.style.whiteSpace = 'normal';
-  this.style.overflow = 'visible';
-}
-
-function shrinkField() {
-  this.style.height = '';
-  this.style.whiteSpace = '';
-  this.style.overflow = '';
-}
-
-function generateFilenames(range, prefix, suffix) {
-  const filenames = [];
-  let delay = 1000;
-
+function generateFilenames(range, pre, suf) {
+  const out = [];
   if (/^\d+-\d+$/.test(range)) {
-    const [start, end] = range.split('-').map(Number);
-    for (let i = start; i <= end; i++) {
-      filenames.push(`${prefix}${i}${suffix}`);
-    }
+    const [a, b] = range.split('-').map(Number);
+    for (let i = a; i <= b; ++i) out.push(`${pre}${i}${suf}`);
   } else if (/^[a-zA-Z]-[a-zA-Z]$/.test(range)) {
-    const [start, end] = range.split('-');
-    const startCode = start.charCodeAt(0);
-    const endCode = end.charCodeAt(0);
-    for (let i = startCode; i <= endCode; i++) {
-
-        filenames.push(`${prefix}${String.fromCharCode(i)}${suffix}`);
-    }
+    const [a, b] = range.split('-');
+    for (let c = a.charCodeAt(0); c <= b.charCodeAt(0); ++c)
+      out.push(`${pre}${String.fromCharCode(c)}${suf}`);
   }
-
-  return filenames;
+  return out;
 }
 
 function updatePreview() {
-  const bfBasePath = document.getElementById('bfBasePath').value;
-  const bfRange = document.getElementById('bfRange').value;
-  const bfPrefix = document.getElementById('bfPrefix').value || '';
-  const bfSuffix = document.getElementById('bfSuffix').value || '';
-  console.log(bfBasePath, bfRange, bfPrefix, bfSuffix);
-  let previewLink = '';
-  if (bfBasePath && bfRange && bfSuffix) {
-    const exampleFile = generateFilenames(bfRange, bfPrefix, bfSuffix)[0] || '';
-    previewLink = bfBasePath + exampleFile;
-  }
+  const bp   = document.getElementById('bfBasePath').value;
+  const rng  = document.getElementById('bfRange').value;
+  const pre  = document.getElementById('bfPrefix').value || '';
+  const suf  = document.getElementById('bfSuffix').value || '';
 
-  document.getElementById('previewLink').textContent = previewLink;
+  const example = bp && rng && suf ? generateFilenames(rng, pre, suf)[0] : undefined;
+  const url     = example ? bp + example : '';
+  document.getElementById('previewLink').textContent = url;
+  console.log('[Popup] previewLink updated →', url);
 }
